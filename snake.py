@@ -358,6 +358,7 @@ def notification():
 
 cycle = True
 while cycle:
+    pygame.display.set_caption('SNAKE')
     start_screen()
     running = True
     width, height = 30, 30
