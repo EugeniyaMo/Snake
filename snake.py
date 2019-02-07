@@ -6,7 +6,7 @@ import random
 pygame.init()
 
 FPS = 50
-WIDTH = 800
+WIDTH = 850
 HEIGHT = 620
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -27,7 +27,6 @@ def load_image(name, color_key=None):
         image.set_colorkey(color_key)
     return image
 
-
 def load_level(filename):
     filename = "data/" + filename
     # читаем уровень, убирая символы перевода строки
@@ -42,7 +41,6 @@ def load_level(filename):
 
 def generate_level(level):
     board = [[0] * width for _ in range(height)]
-    x, y = None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
@@ -55,6 +53,7 @@ def generate_level(level):
                 board[y][x] = 2
     # вернем игрока, а также размер поля в клетках
     return board
+
 
 class Board:
     # создание поля
@@ -98,6 +97,7 @@ class Snake(Board):
                 if self.board[j][i] == 1 or self.board[j][i] == 2:
                     self.list.append((j, i))
         self.score = 0
+        self.apple = 0
 
     def render(self):
         for y in range(self.height):
@@ -138,24 +138,39 @@ class Snake(Board):
                          self.top + y * self.cell_size + self.cell_size),
                         2
                     )
-                elif self.board[y][x] == 3:
-                    pygame.draw.rect(
-                        screen,
-                        pygame.Color('red'),
-                        (self.left + x * self.cell_size,
-                         self.top + y * self.cell_size,
-                         self.cell_size,
-                         self.cell_size)
-                    )
-                    pygame.draw.rect(
+                elif 3 <= self.board[y][x] <= 5:
+                    pygame.draw.circle(
                         screen,
                         pygame.Color("black"),
-                        (self.left + x * self.cell_size,
-                         self.top + y * self.cell_size,
-                         self.cell_size,
-                         self.cell_size),
+                        (self.left + x * self.cell_size + self.cell_size // 2,
+                         self.top + y * self.cell_size + self.cell_size // 2),
+                         self.cell_size // 2,
                         1
                     )
+                    if self.board[y][x] == 3:
+                        pygame.draw.circle(
+                            screen,
+                            (255, 45, 71),
+                            (self.left + x * self.cell_size + self.cell_size // 2,
+                             self.top + y * self.cell_size + self.cell_size // 2),
+                            self.cell_size // 2
+                        )
+                    elif self.board[y][x] == 4:
+                        pygame.draw.circle(
+                            screen,
+                            (255, 111, 139),
+                            (self.left + x * self.cell_size + self.cell_size // 2,
+                             self.top + y * self.cell_size + self.cell_size // 2),
+                            self.cell_size // 2
+                        )
+                    elif self.board[y][x] == 5:
+                        pygame.draw.circle(
+                            screen,
+                            (255, 147, 5),
+                            (self.left + x * self.cell_size + self.cell_size // 2,
+                             self.top + y * self.cell_size + self.cell_size // 2),
+                            self.cell_size // 2
+                        )
 
     def move(self, direction):
         head = self.list[len(self.list) - 1]
@@ -163,60 +178,71 @@ class Snake(Board):
         if direction == 2:
             if self.check_wall((head[0], (head[1] + 1) % self.width)):
                 game_over()
-                return False
+                return False, self.score
             if self.check_food((head[0], (head[1] + 1) % self.width)):
                 add = True
+                point = self.board[head[0]][(head[1] + 1) % self.width]
             self.list.append((head[0], (head[1] + 1) % self.width))
             self.board[head[0]][(head[1] + 1) % self.width] = 1
         elif direction == 1:
             if head[0] > 0:
                 if self.check_wall((head[0] - 1, head[1])):
                     game_over()
-                    return False
+                    return False, self.score
                 if self.check_food((head[0] - 1, head[1])):
                     add = True
+                    point = self.board[head[0] - 1][head[1]]
                 self.list.append((head[0] - 1, head[1]))
                 self.board[head[0] - 1][head[1]] = 1
             else:
                 if self.check_wall((head[0] - 1 + self.height, head[1])):
                     game_over()
-                    return False
+                    return False, self.score
                 if self.check_food((head[0] - 1 + self.height, head[1])):
                     add = True
+                    point = self.board[head[0] - 1 + self.height][head[1]]
                 self.list.append((head[0] - 1 + self.height, head[1]))
                 self.board[head[0] - 1 + self.height][head[1]] = 1
         elif direction == 4:
             if head[1] > 0:
                 if self.check_wall((head[0], head[1] - 1)):
                     game_over()
-                    return False
+                    return False, self.score
                 if self.check_food((head[0], head[1] - 1)):
                     add = True
+                    point = self.board[head[0]][head[1] - 1]
                 self.list.append((head[0], head[1] - 1))
                 self.board[head[0]][head[1] - 1] = 1
             else:
                 if self.check_wall((head[0], head[1] - 1 + self.width)):
                     game_over()
-                    return False
+                    return False, self.score
                 if self.check_food((head[0], head[1] - 1 + self.width)):
                     add = True
+                    point = self.board[head[0]][head[1] - 1 + self.width]
                 self.list.append((head[0], head[1] - 1 + self.width))
                 self.board[head[0]][head[1] - 1 + self.width] = 1
         elif direction == 3:
             if self.check_wall(((head[0] + 1) % self.height, head[1])):
                 game_over()
-                return False
+                return False, self.score
             if self.check_food(((head[0] + 1) % self.height, head[1])):
                 add = True
+                point = self.board[(head[0] + 1) % self.height][head[1]]
             self.list.append(((head[0] + 1) % self.height, head[1]))
             self.board[(head[0] + 1) % self.height][head[1]] = 1
         if not add:
             self.board[self.list[0][0]][self.list[0][1]] = 0
             del self.list[0]
         else:
-            self.score += 10
+            if point == 3:
+                self.score += 10
+            elif point == 4:
+                self.score += 15
+            elif point == 5:
+                self.score += 20
             self.add_food()
-        return True
+        return True, self.score
 
     def check_wall(self, cell_coords):
         if self.board[cell_coords[0]][cell_coords[1]] == -1 or \
@@ -225,18 +251,19 @@ class Snake(Board):
         return False
 
     def check_food(self, cell_coords):
-        if self.board[cell_coords[0]][cell_coords[1]] == 3:
+        if 3 <= self.board[cell_coords[0]][cell_coords[1]] <= 5:
             return True
         return False
 
     def food(self):
         count = 0
-        while count < 5:
+        while count < 4:
             x = random.randint(1, self.width - 1)
             y = random.randint(1, self.height - 1)
             if self.board[y][x] == 0:
                 self.board[y][x] = 3
                 count += 1
+                self.apple += 1
 
     def add_food(self):
         flag = True
@@ -246,6 +273,11 @@ class Snake(Board):
             if self.board[y][x] == 0:
                 self.board[y][x] = 3
                 flag = False
+        self.apple += 1
+        if self.apple % 7 == 0:
+            self.board[y][x] = 4
+        if self.apple % 20 == 0:
+            self.board[y][x] = 5
 
 
 def terminate():
@@ -255,11 +287,19 @@ def terminate():
 def game_over():
     fon = pygame.transform.scale(load_image('game_over.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
+    button_size = (201, 65)
+    button_menu = load_image('button_menu.png')
+    screen.blit(button_menu, ((WIDTH - button_size[0]) / 2, 450))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0]) / 2 + button_size[0] and \
+                         450 <= event.pos[1] <= 450 + button_size[1]:
+                    return
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -288,52 +328,86 @@ def start_screen():
         clock.tick(FPS)
 
 def draw():
+    screen.blit(fon, (0, 0))
     pygame.draw.line(screen, pygame.Color('white'), (620, 0), (620, 620), 2)
     button_exit = load_image('button_exit.png')
     button_exit = pygame.transform.scale(button_exit, (85, 35))
-    screen.blit(button_exit, (700, 15))
+    screen.blit(button_exit, (750, 15))
+
+def print_score():
+    font = pygame.font.Font(None, 50)
+    message = 'SCORE: '
+    text = font.render(message, True, pygame.Color('lightgreen'))
+    text_rect = text.get_rect()
+    text_rect.center = (700, 115)
+    screen.blit(text, text_rect)
+    message = str(score)
+    text = font.render(message, True, pygame.Color('lightgreen'))
+    text_rect = text.get_rect()
+    text_rect.center = (800, 115)
+    screen.blit(text, text_rect)
+
+def notification():
+    font = pygame.font.Font(None, 70)
+    message = 'PRESS ANY KEY TO BEGIN GAME'
+    text = font.render(message, True, (255, 119, 89))
+    text_rect = text.get_rect()
+    text_rect.center = (WIDTH / 2, HEIGHT / 2)
+    screen.blit(text, text_rect)
 
 
-start_screen()
-width, height = 30, 30
-fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
-screen.blit(fon, (0, 0))
-fps = 5
-snake = Snake(generate_level(load_level("level1.txt")))
-snake.food()
-direction = 2
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            old_direction = direction
-            if event.key == pygame.K_LEFT:
-                if direction != 2:
-                    direction = 4
-            if event.key == pygame.K_RIGHT:
-                if direction != 4:
-                    direction = 2
-            if event.key == pygame.K_UP:
-                if direction != 3:
-                    direction = 1
-            if event.key == pygame.K_DOWN:
-                if direction != 1:
-                    direction = 3
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if 700 <= event.pos[0] <= 785 and 15 <= event.pos[1] <= 50:
-                game_over()
-                start_screen()
-                snake = Snake(generate_level(load_level("level1.txt")))
-                direction = 2
+cycle = True
+while cycle:
+    start_screen()
+    running = True
+    width, height = 30, 30
+    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
-    draw()
-    if not snake.move(direction):
-        running = False
-    else:
-        snake.render()
-    pygame.display.flip()
-    clock.tick(fps)
+    fps = 5
+    snake = Snake(generate_level(load_level("level1.txt")))
+    snake.food()
+    direction = 2
+    score = 0
+    running = True
+    pointer = False
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                cycle = False
+            if event.type == pygame.KEYDOWN:
+                if pointer:
+                    old_direction = direction
+                    if event.key == pygame.K_LEFT:
+                        if direction != 2:
+                            direction = 4
+                    if event.key == pygame.K_RIGHT:
+                        if direction != 4:
+                            direction = 2
+                    if event.key == pygame.K_UP:
+                        if direction != 3:
+                            direction = 1
+                    if event.key == pygame.K_DOWN:
+                        if direction != 1:
+                            direction = 3
+                else:
+                    pointer = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if 700 <= event.pos[0] <= 785 and 15 <= event.pos[1] <= 50:
+                    running = False
+        draw()
+        if pointer:
+            game, score = snake.move(direction)
+            if not game:
+                running = False
+            else:
+                snake.render()
+                print_score()
+        else:
+            snake.render()
+            print_score()
+            notification()
+        pygame.display.flip()
+        clock.tick(fps)
 
 terminate()
