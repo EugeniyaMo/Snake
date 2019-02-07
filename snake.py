@@ -1,23 +1,16 @@
+import pygame
 import os
 import sys
-import pygame
+import random
 
 pygame.init()
-pygame.key.set_repeat(200, 70)
 
 FPS = 50
 WIDTH = 800
-HEIGHT = 600
-STEP = 10
+HEIGHT = 620
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
-
-player = None
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-
 
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
@@ -26,7 +19,7 @@ def load_image(name, color_key=None):
     except pygame.error as message:
         print('Cannot load image:', name)
         raise SystemExit(message)
-    image = image.convert_alpha()
+    #image = image.convert_alpha()
 
     if color_key is not None:
         if color_key is -1:
@@ -47,62 +40,228 @@ def load_level(filename):
     # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
-head = load_image('head2_clear.png')
-head = pygame.transform.scale(head, (80, 40))
-wall = load_image('wall.png')
-wall = pygame.transform.scale(wall, (40, 40))
-grass = load_image('grass.png')
-grass = pygame.transform.scale(grass, (40, 40))
-tail = load_image('tail2_clear.png')
-tail = pygame.transform.scale(tail, (80, 40))
-body = load_image('body_clear.png')
-body = pygame.transform.scale(body, (40, 40))
-tile_images = {'wall': wall, 'empty':  grass}
-
-tile_width = tile_height = 40
-
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
-        self.image = tile_images[tile_type]
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, player_image):
-        super().__init__(player_group, all_sprites)
-        self.image = player_image
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-
-    def update(self):
-        v = 20
-        fps = 60
-        self.rect.x += v * clock.tick(fps) / 100
-
 def generate_level(level):
-    new_player, x, y = [], None, None
+    board = [[0] * width for _ in range(height)]
+    x, y = None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
-                Tile('empty', x, y)
+                board[y][x] = 0
             elif level[y][x] == '#':
-                Tile('wall', x, y)
+                board[y][x] = -1
             elif level[y][x] == '@':
-                Tile('empty', x, y)
-                new_player.append(Player(x, y, head))
-            elif level[y][x] == '>':
-                Tile('empty', x, y)
-                new_player.append(Player(x, y, tail))
+                board[y][x] = 1
             elif level[y][x] == '-':
-                Tile('empty', x, y)
-                new_player.append(Player(x, y, body))
+                board[y][x] = 2
     # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
+    return board
+
+class Board:
+    # создание поля
+    def __init__(self, width, height, left = 10, top = 10, cell_size = 20):
+        self.width = width
+        self.height = height
+        self.board = [[0] * width for _ in range(height)]
+        # значения по умолчанию
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    # настройка внешнего вида
+    def set_view(self, left, top, cell_size):
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    # отрисовка поля
+    def render(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                pygame.draw.rect(
+                    screen,
+                    pygame.Color("white"),
+                    (self.left + x * self.cell_size,
+                     self.top + y * self.cell_size,
+                     self.cell_size,
+                     self.cell_size),
+                    1 - self.board[y][x]
+                    )
+
+
+class Snake(Board):
+    def __init__(self, board):
+        super().__init__(30, 30, 10, 10, 20)
+        self.board = board
+        self.list = []
+        for i in range(self.width):
+            for j in range(self.width):
+                if self.board[j][i] == 1 or self.board[j][i] == 2:
+                    self.list.append((j, i))
+        self.score = 0
+
+    def render(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.board[y][x] == 1 or self.board[y][x] == 2:
+                    pygame.draw.rect(
+                        screen,
+                        (236, 255, 223),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size)
+                    )
+                elif self.board[y][x] == -1:
+                    pygame.draw.rect(
+                        screen,
+                        (124, 0, 6),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size)
+                    )
+                    pygame.draw.rect(
+                        screen,
+                        pygame.Color("black"),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size),
+                        1
+                    )
+                    pygame.draw.line(
+                        screen,
+                        pygame.Color("black"),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size),
+                        (self.left + x * self.cell_size + self.cell_size,
+                         self.top + y * self.cell_size + self.cell_size),
+                        2
+                    )
+                elif self.board[y][x] == 3:
+                    pygame.draw.rect(
+                        screen,
+                        pygame.Color('red'),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size)
+                    )
+                    pygame.draw.rect(
+                        screen,
+                        pygame.Color("black"),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size),
+                        1
+                    )
+
+    def move(self, direction):
+        head = self.list[len(self.list) - 1]
+        add = False
+        if direction == 2:
+            if self.check_wall((head[0], (head[1] + 1) % self.width)):
+                game_over()
+                return False
+            if self.check_food((head[0], (head[1] + 1) % self.width)):
+                add = True
+            self.list.append((head[0], (head[1] + 1) % self.width))
+            self.board[head[0]][(head[1] + 1) % self.width] = 1
+        elif direction == 1:
+            if head[0] > 0:
+                if self.check_wall((head[0] - 1, head[1])):
+                    game_over()
+                    return False
+                if self.check_food((head[0] - 1, head[1])):
+                    add = True
+                self.list.append((head[0] - 1, head[1]))
+                self.board[head[0] - 1][head[1]] = 1
+            else:
+                if self.check_wall((head[0] - 1 + self.height, head[1])):
+                    game_over()
+                    return False
+                if self.check_food((head[0] - 1 + self.height, head[1])):
+                    add = True
+                self.list.append((head[0] - 1 + self.height, head[1]))
+                self.board[head[0] - 1 + self.height][head[1]] = 1
+        elif direction == 4:
+            if head[1] > 0:
+                if self.check_wall((head[0], head[1] - 1)):
+                    game_over()
+                    return False
+                if self.check_food((head[0], head[1] - 1)):
+                    add = True
+                self.list.append((head[0], head[1] - 1))
+                self.board[head[0]][head[1] - 1] = 1
+            else:
+                if self.check_wall((head[0], head[1] - 1 + self.width)):
+                    game_over()
+                    return False
+                if self.check_food((head[0], head[1] - 1 + self.width)):
+                    add = True
+                self.list.append((head[0], head[1] - 1 + self.width))
+                self.board[head[0]][head[1] - 1 + self.width] = 1
+        elif direction == 3:
+            if self.check_wall(((head[0] + 1) % self.height, head[1])):
+                game_over()
+                return False
+            if self.check_food(((head[0] + 1) % self.height, head[1])):
+                add = True
+            self.list.append(((head[0] + 1) % self.height, head[1]))
+            self.board[(head[0] + 1) % self.height][head[1]] = 1
+        if not add:
+            self.board[self.list[0][0]][self.list[0][1]] = 0
+            del self.list[0]
+        else:
+            self.score += 10
+            self.add_food()
+        return True
+
+    def check_wall(self, cell_coords):
+        if self.board[cell_coords[0]][cell_coords[1]] == -1 or \
+                self.board[cell_coords[0]][cell_coords[1]] == 1:
+            return True
+        return False
+
+    def check_food(self, cell_coords):
+        if self.board[cell_coords[0]][cell_coords[1]] == 3:
+            return True
+        return False
+
+    def food(self):
+        count = 0
+        while count < 5:
+            x = random.randint(1, self.width - 1)
+            y = random.randint(1, self.height - 1)
+            if self.board[y][x] == 0:
+                self.board[y][x] = 3
+                count += 1
+
+    def add_food(self):
+        flag = True
+        while flag:
+            x = random.randint(1, self.width - 1)
+            y = random.randint(1, self.height - 1)
+            if self.board[y][x] == 0:
+                self.board[y][x] = 3
+                flag = False
 
 
 def terminate():
     pygame.quit()
     sys.exit()
 
+def game_over():
+    fon = pygame.transform.scale(load_image('game_over.png'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+        pygame.display.flip()
+        clock.tick(FPS)
 
 def start_screen():
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
@@ -128,40 +287,53 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+def draw():
+    pygame.draw.line(screen, pygame.Color('white'), (620, 0), (620, 620), 2)
+    button_exit = load_image('button_exit.png')
+    button_exit = pygame.transform.scale(button_exit, (85, 35))
+    screen.blit(button_exit, (700, 15))
+
 
 start_screen()
-player, level_x, level_y = generate_level(load_level("level1.txt"))
+width, height = 30, 30
+fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
+screen.blit(fon, (0, 0))
+fps = 5
+snake = Snake(generate_level(load_level("level1.txt")))
+snake.food()
 direction = 2
 running = True
-v = 200
-pos_x = level_x
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN:
+            old_direction = direction
             if event.key == pygame.K_LEFT:
-                direction = 4
-                for i in player:
-                    i.rect.x -= STEP
+                if direction != 2:
+                    direction = 4
             if event.key == pygame.K_RIGHT:
-                direction = 2
-                for i in player:
-                    i.rect.x += STEP
+                if direction != 4:
+                    direction = 2
             if event.key == pygame.K_UP:
-                direction = 1
-                for i in player:
-                    i.rect.y -= STEP
+                if direction != 3:
+                    direction = 1
             if event.key == pygame.K_DOWN:
-                direction = 3
-                for i in player:
-                    i.rect.y += STEP
-    screen.fill(pygame.Color(0, 0, 0))
-    tiles_group.draw(screen)
-    player_group.draw(screen)
-    player_group.update()
+                if direction != 1:
+                    direction = 3
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if 700 <= event.pos[0] <= 785 and 15 <= event.pos[1] <= 50:
+                game_over()
+                start_screen()
+                snake = Snake(generate_level(load_level("level1.txt")))
+                direction = 2
+    screen.blit(fon, (0, 0))
+    draw()
+    if not snake.move(direction):
+        running = False
+    else:
+        snake.render()
     pygame.display.flip()
-
-    clock.tick(FPS)
+    clock.tick(fps)
 
 terminate()
