@@ -393,7 +393,7 @@ while cycle:
                 else:
                     pointer = True
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if 700 <= event.pos[0] <= 785 and 15 <= event.pos[1] <= 50:
+                if 750 <= event.pos[0] <= 835 and 15 <= event.pos[1] <= 50:
                     running = False
         draw()
         if pointer:
