@@ -7,10 +7,11 @@ pygame.init()
 
 FPS = 50
 WIDTH = 850
-HEIGHT = 620
+HEIGHT = 720
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+
 
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
@@ -19,13 +20,14 @@ def load_image(name, color_key=None):
     except pygame.error as message:
         print('Cannot load image:', name)
         raise SystemExit(message)
-    #image = image.convert_alpha()
+    # image = image.convert_alpha()
 
     if color_key is not None:
         if color_key is -1:
             color_key = image.get_at((0, 0))
         image.set_colorkey(color_key)
     return image
+
 
 def load_level(filename):
     filename = "data/" + filename
@@ -38,6 +40,7 @@ def load_level(filename):
 
     # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+
 
 def generate_level(level):
     board = [[0] * width for _ in range(height)]
@@ -57,7 +60,7 @@ def generate_level(level):
 
 class Board:
     # создание поля
-    def __init__(self, width, height, left = 10, top = 10, cell_size = 20):
+    def __init__(self, width, height, left=10, top=10, cell_size=20):
         self.width = width
         self.height = height
         self.board = [[0] * width for _ in range(height)]
@@ -84,7 +87,7 @@ class Board:
                      self.cell_size,
                      self.cell_size),
                     1 - self.board[y][x]
-                    )
+                )
 
 
 class Snake(Board):
@@ -144,7 +147,7 @@ class Snake(Board):
                         pygame.Color("black"),
                         (self.left + x * self.cell_size + self.cell_size // 2,
                          self.top + y * self.cell_size + self.cell_size // 2),
-                         self.cell_size // 2,
+                        self.cell_size // 2,
                         1
                     )
                     if self.board[y][x] == 3:
@@ -276,13 +279,14 @@ class Snake(Board):
         self.apple += 1
         if self.apple % 7 == 0:
             self.board[y][x] = 4
-        if self.apple % 20 == 0:
+        if self.apple % 22 == 0:
             self.board[y][x] = 5
 
 
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 def game_over():
     fon = pygame.transform.scale(load_image('game_over.png'), (WIDTH, HEIGHT))
@@ -298,10 +302,11 @@ def game_over():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
                         (WIDTH - button_size[0]) / 2 + button_size[0] and \
-                         450 <= event.pos[1] <= 450 + button_size[1]:
+                        450 <= event.pos[1] <= 450 + button_size[1]:
                     return
         pygame.display.flip()
         clock.tick(FPS)
+
 
 def start_screen():
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
@@ -311,9 +316,13 @@ def start_screen():
     screen.blit(name, ((WIDTH - size[0]) / 2, 50))
     button_size = (201, 65)
     button_play = load_image('button_play.png')
-    screen.blit(button_play, ((WIDTH - button_size[0]) / 2, 220))
+    screen.blit(button_play, ((WIDTH - button_size[0]) / 2, 210))
+    button_levels = load_image('button_levels.png')
+    screen.blit(button_levels, ((WIDTH - button_size[0]) / 2, 310))
     button_rules = load_image('button_rules.png')
-    screen.blit(button_rules, ((WIDTH - button_size[0]) / 2, 320))
+    screen.blit(button_rules, ((WIDTH - button_size[0]) / 2, 410))
+    button_exit = load_image('exit.png')
+    screen.blit(button_exit, ((WIDTH - button_size[0]) / 2, 510))
 
     while True:
         for event in pygame.event.get():
@@ -322,20 +331,32 @@ def start_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN and \
                     (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
                     (WIDTH - button_size[0]) / 2 + button_size[0] and \
-                    220 <= event.pos[1] <= 320:
+                    210 <= event.pos[1] < 210 + button_size[1]:
                 return  # начинаем игру
+            elif event.type == pygame.MOUSEBUTTONDOWN and \
+                    (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                    (WIDTH - button_size[0]) / 2 + button_size[0] and \
+                    310 <= event.pos[1] <= 310 + button_size[1]:
+                levels_screen()
         pygame.display.flip()
         clock.tick(FPS)
 
+
+def levels_screen():
+    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+
+
 def draw():
     screen.blit(fon, (0, 0))
-    pygame.draw.line(screen, pygame.Color('white'), (620, 0), (620, 620), 2)
+    pygame.draw.line(screen, pygame.Color('white'), (620, 0), (620, HEIGHT), 2)
     button_exit = load_image('button_exit.png')
     button_exit = pygame.transform.scale(button_exit, (85, 35))
     screen.blit(button_exit, (750, 15))
 
+
 def print_score():
-    font = pygame.font.Font(None, 50)
+    font = pygame.font.SysFont(None, 50)
     message = 'SCORE: '
     text = font.render(message, True, pygame.Color('lightgreen'))
     text_rect = text.get_rect()
@@ -347,12 +368,13 @@ def print_score():
     text_rect.center = (800, 115)
     screen.blit(text, text_rect)
 
+
 def notification():
     font = pygame.font.Font(None, 70)
     message = 'PRESS ANY KEY TO BEGIN GAME'
     text = font.render(message, True, (255, 119, 89))
     text_rect = text.get_rect()
-    text_rect.center = (WIDTH / 2, HEIGHT / 2)
+    text_rect.center = (WIDTH / 2, HEIGHT - 50)
     screen.blit(text, text_rect)
 
 
