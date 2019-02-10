@@ -114,6 +114,15 @@ class Snake(Board):
                          self.cell_size,
                          self.cell_size)
                     )
+                    pygame.draw.rect(
+                        screen,
+                        pygame.Color('black'),
+                        (self.left + x * self.cell_size,
+                         self.top + y * self.cell_size,
+                         self.cell_size,
+                         self.cell_size),
+                        1
+                    )
                 elif self.board[y][x] == -1:
                     pygame.draw.rect(
                         screen,
@@ -260,7 +269,7 @@ class Snake(Board):
 
     def food(self):
         count = 0
-        while count < 4:
+        while count < 2:
             x = random.randint(1, self.width - 1)
             y = random.randint(1, self.height - 1)
             if self.board[y][x] == 0:
@@ -323,21 +332,23 @@ def start_screen():
     screen.blit(button_rules, ((WIDTH - button_size[0]) / 2, 410))
     button_exit = load_image('exit.png')
     screen.blit(button_exit, ((WIDTH - button_size[0]) / 2, 510))
-
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.MOUSEBUTTONDOWN and \
-                    (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
-                    (WIDTH - button_size[0]) / 2 + button_size[0] and \
-                    210 <= event.pos[1] < 210 + button_size[1]:
-                return  # начинаем игру
-            elif event.type == pygame.MOUSEBUTTONDOWN and \
-                    (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
-                    (WIDTH - button_size[0]) / 2 + button_size[0] and \
-                    310 <= event.pos[1] <= 310 + button_size[1]:
-                levels_screen()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0]) / 2 + button_size[0] and \
+                        210 <= event.pos[1] <= 210 + button_size[1]:
+                    return 0  # начинаем игру
+                elif (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0]) / 2 + button_size[0] and \
+                        310 <= event.pos[1] <= 310 + button_size[1]:
+                    return 1
+                elif (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0]) / 2 + button_size[0] and \
+                        510 <= event.pos[1] <= 510 + button_size[1]:
+                    terminate()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -345,14 +356,53 @@ def start_screen():
 def levels_screen():
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
+    button_size = (65, 65)
+    button_level = load_image('level1.png')
+    screen.blit(button_level, ((WIDTH - button_size[0] - 400) / 2, 310))
+    button_level = load_image('level2.png')
+    screen.blit(button_level, ((WIDTH - button_size[0] - 200) / 2, 310))
+    button_level = load_image('level3.png')
+    screen.blit(button_level, ((WIDTH - button_size[0]) / 2, 310))
+    button_level = load_image('level4.png')
+    screen.blit(button_level, ((WIDTH - button_size[0] + 200) / 2, 310))
+    button_level = load_image('level5.png')
+    screen.blit(button_level, ((WIDTH - button_size[0] + 400) / 2, 310))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if (WIDTH - button_size[0] - 400) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0] - 400) / 2 + button_size[0]:
+                    return 1
+                elif (WIDTH - button_size[0] - 200) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0] - 200) / 2 + button_size[0]:
+                    return 2
+                elif (WIDTH - button_size[0]) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0]) / 2 + button_size[0]:
+                    return 3
+                elif (WIDTH - button_size[0] + 200) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0] + 200) / 2 + button_size[0]:
+                    return 4
+                elif (WIDTH - button_size[0] + 400) / 2 <= event.pos[0] <= \
+                        (WIDTH - button_size[0] + 400) / 2 + button_size[0]:
+                    return 5
+        pygame.display.flip()
+        clock.tick(FPS)
 
 
 def draw():
     screen.blit(fon, (0, 0))
-    pygame.draw.line(screen, pygame.Color('white'), (620, 0), (620, HEIGHT), 2)
+    pygame.draw.line(screen, pygame.Color('white'),
+                     (620, 0), (620, HEIGHT - 100), 2)
+    pygame.draw.line(screen, pygame.Color('white'),
+                     (0, HEIGHT - 100), (WIDTH, HEIGHT - 100), 2)
     button_exit = load_image('button_exit.png')
     button_exit = pygame.transform.scale(button_exit, (85, 35))
     screen.blit(button_exit, (750, 15))
+    button_menu = load_image('menu.png')
+    button_menu = pygame.transform.scale(button_menu, (85, 35))
+    screen.blit(button_menu, (750, 55))
 
 
 def print_score():
@@ -360,12 +410,22 @@ def print_score():
     message = 'SCORE: '
     text = font.render(message, True, pygame.Color('lightgreen'))
     text_rect = text.get_rect()
-    text_rect.center = (700, 115)
+    text_rect.center = (700, 150)
     screen.blit(text, text_rect)
     message = str(score)
     text = font.render(message, True, pygame.Color('lightgreen'))
     text_rect = text.get_rect()
-    text_rect.center = (800, 115)
+    text_rect.center = (800, 150)
+    screen.blit(text, text_rect)
+    message = 'LEVEL: '
+    text = font.render(message, True, pygame.Color('lightgreen'))
+    text_rect = text.get_rect()
+    text_rect.center = (700, 200)
+    screen.blit(text, text_rect)
+    message = str(level)
+    text = font.render(message, True, pygame.Color('lightgreen'))
+    text_rect = text.get_rect()
+    text_rect.center = (800, 200)
     screen.blit(text, text_rect)
 
 
@@ -379,15 +439,18 @@ def notification():
 
 
 cycle = True
+level = 1
 while cycle:
     pygame.display.set_caption('SNAKE')
-    start_screen()
+    number = start_screen()
+    if number == 1:
+        level = levels_screen()
     running = True
     width, height = 30, 30
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
-    fps = 5
-    snake = Snake(generate_level(load_level("level1.txt")))
+    fps = 10
+    snake = Snake(generate_level(load_level("level" + str(level) + ".txt")))
     snake.food()
     direction = 2
     score = 0
@@ -417,6 +480,8 @@ while cycle:
                     pointer = True
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if 750 <= event.pos[0] <= 835 and 15 <= event.pos[1] <= 50:
+                    terminate()
+                elif 750 <= event.pos[0] <= 835 and 55 <= event.pos[1] <= 90:
                     running = False
         draw()
         if pointer:
